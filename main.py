@@ -23,8 +23,8 @@ async def root():
     return {"status": "Bot is running"}
 
 # Binance Futures ve Telegram ayarları
-API_KEY = os.getenv("API_KEY", "your_default_api_key")  # Render environment variable
-API_SECRET = os.getenv("API_SECRET", "your_default_api_secret")  # Render environment variable
+API_KEY = os.getenv("API_KEY", "your_default_api_key")
+API_SECRET = os.getenv("API_SECRET", "your_default_api_secret")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "7747350733:AAExXm8sTc7JNq3L0eR5Hv9oo-LXWVof2aM")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "1433612470")
 SYMBOLS = ["SUIUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "AVAXUSDT", "DOGEUSDT", "ADAUSDT", "XRPUSDT", "XLMUSDT", "UNIUSDT"]
@@ -74,7 +74,7 @@ async def send_trade_history():
                 logger.info("Trade history CSV Telegram’a gönderildi")
         except Exception as e:
             logger.error(f"Trade history gönderilemedi: {e}")
-        await asyncio.sleep(86400)  # Her 24 saatte bir
+        await asyncio.sleep(86400)
 
 # Bot durum bildirimi
 async def send_status_update():
@@ -108,7 +108,7 @@ async def mode_gercek(update, context):
     await send_telegram_message("✅ Gerçek işlem moduna geçildi. Açık pozisyonlar sıfırlandı. Dikkatli olun!")
     logger.info("Gerçek işlem moduna geçildi.")
 
-# Sembol hassasiyetlerini çek
+# Sembol hassasiyetlerini çek ve geçerli sembolleri döndür
 async def get_symbol_precision(client):
     try:
         exchange_info = await client.futures_exchange_info()
@@ -117,14 +117,13 @@ async def get_symbol_precision(client):
             if symbol_info['symbol'] in SYMBOLS:
                 symbol_precision[symbol_info['symbol']] = symbol_info['quantityPrecision']
                 valid_symbols.append(symbol_info['symbol'])
-        # Geçersiz sembolleri listeden çıkar
-        global SYMBOLS
-        SYMBOLS = valid_symbols
         logger.info(f"Sembol hassasiyetleri: {symbol_precision}")
-        logger.info(f"Geçerli semboller: {SYMBOLS}")
+        logger.info(f"Geçerli semboller: {valid_symbols}")
+        return valid_symbols
     except Exception as e:
         logger.error(f"Hassasiyet bilgisi alınamadı: {e}")
         symbol_precision.update({symbol: 2 for symbol in SYMBOLS})
+        return SYMBOLS
 
 # Açık pozisyonları kontrol et
 async def check_open_position(client, symbol):
@@ -477,10 +476,11 @@ async def process_symbol(client, symbol):
 
 # Ana fonksiyon
 async def main():
+    global SYMBOLS
     client = None
     try:
         client = await AsyncClient.create(API_KEY, API_SECRET, testnet=False)
-        await get_symbol_precision(client)
+        SYMBOLS = await get_symbol_precision(client)  # Geçerli sembolleri güncelle
         app = Application.builder().token(TELEGRAM_TOKEN).build()
         app.add_handler(CommandHandler("mode_sanal", mode_sanal))
         app.add_handler(CommandHandler("mode_gercek", mode_gercek))
