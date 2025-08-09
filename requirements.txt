@@ -1,0 +1,13 @@
+python-binance==1.0.29
+python-telegram-bot==20.7
+pandas
+numpy
+ta
+aiohttp
+websockets
+dateparser
+pycryptodome
+requests
+six
+fastapi
+uvicorn
